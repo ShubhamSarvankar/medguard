@@ -192,6 +192,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -228,6 +232,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -310,7 +318,7 @@ jobs:
           firebase emulators:start \
             --project medguard-dev \
             --only auth,firestore,functions,storage &
-          npx wait-on http://127.0.0.1:9099 http://127.0.0.1:8080 -t 60000
+          npx wait-on http-get://127.0.0.1:4400/emulators -t 120000
         env:
           GCLOUD_PROJECT: medguard-dev
       - name: Run Android E2E tests

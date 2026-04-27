@@ -103,11 +103,11 @@ class RecordsViewModel @Inject constructor(
         authRepository.currentUser,
         _searchQuery.debounce(300),
     ) { user, query -> user to query }
-        .flatMapLatest { (user, _) ->
-            if (user == null) return@flatMapLatest flowOf(RecordsUiState.Error("Not authenticated"))
+        .flatMapLatest<Pair<com.medguard.app.domain.model.User?, String>, List<RecordWithRelations>> { (user, _) ->
+            if (user == null) return@flatMapLatest flowOf(emptyList())
             recordRepository.observeRecords(user.uid)
         }
-        .combine(_searchQuery.debounce(300)) { records: List<RecordWithRelations>, query: String ->
+        .combine(_searchQuery.debounce(300)) { records, query ->
             val filtered = if (query.isBlank()) {
                 records
             } else {

@@ -1,0 +1,311 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ─── Shared env ──────────────────────────────────────────────────────────────
+env:
+  NODE_VERSION: "20"
+  JAVA_VERSION: "17"
+
+# =============================================================================
+# UNIT TESTS — run on every push
+# =============================================================================
+jobs:
+  types-build:
+    name: Build shared types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: types/package-lock.json
+      - run: npm ci
+        working-directory: types
+      - run: npm run build
+        working-directory: types
+      - uses: actions/upload-artifact@v4
+        with:
+          name: types-dist
+          path: types/dist
+
+  functions-unit:
+    name: Functions unit tests
+    needs: types-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            types/package-lock.json
+            functions/package-lock.json
+      - name: Build types
+        run: npm ci && npm run build
+        working-directory: types
+      - name: Install functions deps
+        run: npm ci
+        working-directory: functions
+      - name: Run unit tests
+        run: npm test -- --coverage
+        working-directory: functions
+
+  web-unit:
+    name: Web unit tests
+    needs: types-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            types/package-lock.json
+            web/package-lock.json
+      - name: Build types
+        run: npm ci && npm run build
+        working-directory: types
+      - name: Install web deps
+        run: npm ci
+        working-directory: web
+      - name: Run unit tests
+        run: npm test -- --coverage
+        working-directory: web
+
+  android-unit:
+    name: Android unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Run unit tests
+        run: ./gradlew test
+        working-directory: android
+
+# =============================================================================
+# LINT + TYPECHECK + INTEGRATION TESTS — run on pull requests
+# =============================================================================
+  functions-lint:
+    name: Functions lint
+    if: github.event_name == 'pull_request'
+    needs: types-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            types/package-lock.json
+            functions/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: types
+      - run: npm ci
+        working-directory: functions
+      - run: npm run lint
+        working-directory: functions
+      - run: npx tsc --noEmit
+        working-directory: functions
+
+  web-lint:
+    name: Web lint + typecheck
+    if: github.event_name == 'pull_request'
+    needs: types-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            types/package-lock.json
+            web/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: types
+      - run: npm ci
+        working-directory: web
+      - run: npm run lint
+        working-directory: web
+      - run: npm run typecheck
+        working-directory: web
+
+  android-lint:
+    name: Android lint
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@v3
+      - run: ./gradlew lint
+        working-directory: android
+
+  integration-tests:
+    name: Functions integration tests
+    if: github.event_name == 'pull_request'
+    needs: [functions-unit, types-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            types/package-lock.json
+            functions/package-lock.json
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - run: npm ci && npm run build
+        working-directory: types
+      - run: npm ci && npm run build
+        working-directory: functions
+      - name: Start emulators and run integration tests
+        run: |
+          firebase emulators:exec \
+            --project medguard-dev \
+            --only auth,firestore,functions,storage \
+            "cd functions && npm run test:integration"
+        env:
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+          FIREBASE_STORAGE_EMULATOR_HOST: 127.0.0.1:9199
+          GCLOUD_PROJECT: medguard-dev
+          USE_EMULATORS: "true"
+
+# =============================================================================
+# E2E + SECURITY SCAN — run on merge to main
+# =============================================================================
+  web-e2e:
+    name: Web E2E (Playwright)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [web-unit, integration-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            types/package-lock.json
+            web/package-lock.json
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - run: npm ci && npm run build
+        working-directory: types
+      - run: npm ci && npm run build
+        working-directory: functions
+      - run: npm ci
+        working-directory: web
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: web
+      - name: Start emulators and run E2E tests
+        run: |
+          firebase emulators:exec \
+            --project medguard-dev \
+            --only auth,firestore,functions,storage \
+            "cd web && npm run test:e2e"
+        env:
+          VITE_USE_EMULATORS: "true"
+          VITE_FIREBASE_API_KEY: fake-api-key
+          VITE_FIREBASE_AUTH_DOMAIN: medguard-dev.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID: medguard-dev
+          VITE_FIREBASE_STORAGE_BUCKET: medguard-dev.firebasestorage.app
+          VITE_FIREBASE_MESSAGING_SENDER_ID: "315081170003"
+          VITE_FIREBASE_APP_ID: "1:315081170003:web:3cd0e92c77245e4d137aa6"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+
+  android-e2e:
+    name: Android E2E (Compose UI Tests)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [android-unit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Enable KVM (hardware acceleration for Android emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Start Firebase emulators (background)
+        run: |
+          npm ci --prefix functions
+          npm run build --prefix functions
+          firebase emulators:start \
+            --project medguard-dev \
+            --only auth,firestore,functions,storage &
+          # Wait for emulators to be ready
+          npx wait-on http://127.0.0.1:9099 http://127.0.0.1:8080 -t 60000
+        env:
+          GCLOUD_PROJECT: medguard-dev
+      - name: Run Android E2E tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.medguard.app.e2e.AuthAndCrudJourneyTest,com.medguard.app.e2e.CodeShareJourneyTest,com.medguard.app.e2e.OfflineJourneyTest
+          working-directory: android
+
+  security-scan:
+    name: Security scan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [functions-unit, web-unit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Audit functions dependencies
+        run: npm ci && npm audit --audit-level=high
+        working-directory: functions
+      - name: Audit web dependencies
+        run: npm ci && npm audit --audit-level=high
+        working-directory: web
+      - name: Check for secrets in source (truffleHog)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.before }}
+          head: ${{ github.sha }}
+          extra_args: --only-verified

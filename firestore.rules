@@ -1,0 +1,199 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper functions
+    // -------------------------------------------------------------------------
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function hasAcceptedShare(recordId) {
+      return isAuthenticated() &&
+        ('grants' in get(/databases/$(database)/documents/records/$(recordId)).data && get(/databases/$(database)/documents/records/$(recordId)).data.grants[request.auth.uid] == true);
+    }
+
+    function canReadRecord(recordId) {
+      return isAuthenticated() && (
+        resource.data.ownerUid == request.auth.uid
+        ||
+        ('grants' in resource.data && resource.data.grants[request.auth.uid] == true)
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // users/{uid}
+    // -------------------------------------------------------------------------
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // careCircle sub-collection
+      match /careCircle/{memberUid} {
+        // Patient reads and manages their own care circle
+        allow read, write: if isOwner(uid);
+        // Invited member can read their own membership document
+        allow read: if isAuthenticated() && request.auth.uid == memberUid;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // records/{recordId}
+    // -------------------------------------------------------------------------
+
+    match /records/{recordId} {
+      allow read: if isAuthenticated() && (
+        resource.data.ownerUid == request.auth.uid
+        ||
+        ('grants' in resource.data && resource.data.grants[request.auth.uid] == true)
+      );
+
+      // Update/delete: owner only (no direct client creates — must go through
+      // the onRecordWrite Cloud Function which enforces de-identification)
+      allow update, delete: if isAuthenticated() &&
+        resource.data.ownerUid == request.auth.uid;
+
+      // Create: blocked for all clients — Cloud Functions only via Admin SDK
+      allow create: if false;
+
+      // attachmentMeta sub-collection — same access as parent record
+      match /attachmentMeta/{attachmentId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/records/$(recordId)).data.ownerUid == request.auth.uid
+          ||
+          ('grants' in get(/databases/$(database)/documents/records/$(recordId)).data && get(/databases/$(database)/documents/records/$(recordId)).data.grants[request.auth.uid] == true)
+        );
+        allow write: if false;
+      }
+
+      // annotations sub-collection (OQ-02)
+      match /annotations/{annotationId} {
+        // Read: same access rules as the parent record
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/records/$(recordId)).data.ownerUid == request.auth.uid
+          ||
+          ('grants' in get(/databases/$(database)/documents/records/$(recordId)).data && get(/databases/$(database)/documents/records/$(recordId)).data.grants[request.auth.uid] == true)
+        );
+
+        // Create: clinicians with an accepted share on this record only.
+        // Role check is enforced via the createAnnotation Cloud Function —
+        // direct client writes are blocked here as a defense-in-depth measure.
+        allow create: if false;
+
+        // Update/delete: annotation author only, via Cloud Function
+        allow update, delete: if false;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // pendingRecords/{recordId} (OQ-01 — caretaker drafts awaiting patient approval)
+    // -------------------------------------------------------------------------
+
+    match /pendingRecords/{recordId} {
+      // Patient (owner) reviews their pending records
+      allow read: if isAuthenticated() && (
+        resource.data.ownerUid == request.auth.uid
+        ||
+        resource.data.createdByUid == request.auth.uid
+      );
+
+      // Caretaker creates draft — enforced via submitRecordForApproval Cloud Function
+      allow create: if false;
+
+      // Caretaker edits their own draft before patient approval
+      allow update: if isAuthenticated() &&
+        resource.data.createdByUid == request.auth.uid &&
+        resource.data.status == 'pending_approval';
+
+      // Delete: Cloud Functions only (on approve or reject)
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // shares/{shareId}
+    // -------------------------------------------------------------------------
+
+    match /shares/{shareId} {
+      allow read: if isAuthenticated() && (
+        resource.data.senderUid == request.auth.uid
+        ||
+        resource.data.recipientUid == request.auth.uid
+      );
+      // All writes go through Cloud Functions
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // shareCodes/{code}
+    // -------------------------------------------------------------------------
+
+    match /shareCodes/{code} {
+      // Any authenticated user can read a share code to claim it
+      allow read: if isAuthenticated();
+      // All writes go through Cloud Functions
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // auditLog/{entryId}
+    // -------------------------------------------------------------------------
+
+    match /auditLog/{entryId} {
+      allow read: if isAuthenticated() && (
+        // Actor sees their own entries (caretakers and clinicians — OQ-04)
+        resource.data.actorUid == request.auth.uid
+        ||
+        // Record owner sees all audit entries for their records
+        (
+          resource.data.recordId != null &&
+          get(/databases/$(database)/documents/records/$(resource.data.recordId)).data.ownerUid
+            == request.auth.uid
+        )
+      );
+      // Append-only via Cloud Functions — no client writes ever
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // careCircleInvites/{inviteId}
+    // -------------------------------------------------------------------------
+
+    match /careCircleInvites/{inviteId} {
+      // Patient sees invites they sent; invitee sees invites addressed to them
+      allow read: if isAuthenticated() && (
+        resource.data.patientUid == request.auth.uid
+        ||
+        resource.data.inviteeUid == request.auth.uid
+      );
+      // All writes go through Cloud Functions
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // deletionRequests/{deletionRequestId}
+    // -------------------------------------------------------------------------
+
+    match /deletionRequests/{deletionRequestId} {
+      // Users can read their own deletion request status
+      allow read: if isAuthenticated() &&
+        resource.data.uid == request.auth.uid;
+      // Created and processed by Cloud Functions only
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Catch-all — deny everything not explicitly matched above
+    // -------------------------------------------------------------------------
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

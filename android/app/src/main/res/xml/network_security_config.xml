@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Certificate pins are populated in production (Module 8.1 / Phase 10.1).
+  Cleartext traffic is disabled for all domains — TLS only.
+
+  PRODUCTION SWAP: uncomment the <pin-set> block below and replace the
+  placeholder hashes with real extracted hashes. Extract with:
+    openssl s_client -connect firebaseapp.com:443 </dev/null 2>/dev/null | \
+      openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | \
+      openssl dgst -sha256 -binary | base64
+  Repeat for googleapis.com and cloudfunctions.net.
+  Update the expiration date to 90 days before the leaf cert expires.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Firebase backend domains with placeholder certificate pins.
+         Pins are commented out so the emulator build remains functional.
+         Uncomment and populate for production (PRODUCTION SWAP above). -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">firebaseapp.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">cloudfunctions.net</domain>
+        <domain includeSubdomains="true">firebaseio.com</domain>
+        <!--
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
+        </pin-set>
+        -->
+    </domain-config>
+</network-security-config>

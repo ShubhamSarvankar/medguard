@@ -1,0 +1,50 @@
+import * as functions from "firebase-functions";
+import { z } from "zod";
+import {
+  getPendingRecord,
+  deletePendingRecord,
+} from "../lib/firestoreAdmin";
+import { writeAuditLog } from "../audit/writeAuditLog";
+
+const requestSchema = z.object({
+  recordId: z.string().min(1),
+});
+
+export const rejectRecord = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
+  }
+
+  const parsed = requestSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      parsed.error.issues[0]?.message ?? "Invalid request."
+    );
+  }
+
+  const { recordId } = parsed.data;
+  const patientUid = context.auth.uid;
+
+  const pendingRecord = await getPendingRecord(recordId);
+  if (!pendingRecord) {
+    throw new functions.https.HttpsError("not-found", "Pending record not found.");
+  }
+
+  if (pendingRecord.ownerUid !== patientUid) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "You are not the owner of this record."
+    );
+  }
+
+  await deletePendingRecord(recordId);
+
+  await writeAuditLog({
+    actorUid: patientUid,
+    actionType: "record.rejected",
+    recordId,
+  });
+
+  return { recordId };
+});

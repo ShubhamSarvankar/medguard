@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Phase 0 skeleton — deny all client access by default.
+    // Rules are opened in Phase 4 when attachment upload/download is implemented.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="MedGuard — secure medical records management" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+               script-src 'self' https://www.google.com https://www.gstatic.com;
+               style-src 'self' 'unsafe-inline';
+               connect-src 'self'
+                 https://*.googleapis.com https://*.firebaseio.com
+                 https://*.cloudfunctions.net wss://*.firebaseio.com
+                 http://localhost:9099 http://127.0.0.1:9099
+                 http://localhost:8080 http://127.0.0.1:8080
+                 http://localhost:5001 http://127.0.0.1:5001
+                 http://localhost:9199 http://127.0.0.1:9199;
+               frame-src https://www.google.com;
+               img-src 'self' data: blob:;" />
+    <title>MedGuard</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

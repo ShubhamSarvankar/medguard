@@ -1,0 +1,20 @@
+// All functions require a valid Firebase Auth token and App Check attestation.
+export { onRecordWrite } from "./pipeline/onRecordWrite";
+export { summarizeRecord } from "./ai/summarizeRecord";
+export { createRecord } from "./records/createRecord";
+export { submitRecordForApproval } from "./records/submitRecordForApproval";
+export { approveRecord } from "./records/approveRecord";
+export { rejectRecord } from "./records/rejectRecord";
+export { createAnnotation } from "./records/createAnnotation";
+export { updateAnnotation } from "./records/updateAnnotation";
+export { deleteAnnotation } from "./records/deleteAnnotation";
+export { initiateShare } from "./share/initiateShare";
+export { acceptShare } from "./share/acceptShare";
+export { revokeShare } from "./share/revokeShare";
+export { expireShareCodes } from "./share/expireShareCodes";
+export { deleteUserData } from "./user/deleteUserData";
+export { processAccountDeletions } from "./user/processAccountDeletions";
+export { inviteToCareCircle } from "./user/inviteToCareCircle";
+export { acceptCareCircleInvite } from "./user/acceptCareCircleInvite";
+export { removeCareCircleMember } from "./user/removeCareCircleMember";
+export { getRecordKey } from "./records/getRecordKey";

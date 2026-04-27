@@ -1,0 +1,79 @@
+# ── Environment & secrets ────────────────────────────────────
+.env
+.env.*
+!.env.example
+web/.env
+web/.env.*
+!web/.env.example
+functions/.env
+functions/.env.*
+!functions/.env.example
+
+# Firebase credentials
+android/app/google-services.json
+android/app/google-services-dev.json
+.firebaserc
+.firebaserc.local
+
+# Keystores
+android/keystore/
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+
+# ── Build outputs ────────────────────────────────────────────
+# Web
+web/dist/
+
+# Cloud Functions compiled JS
+functions/lib/
+
+# Types compiled output
+types/dist/
+types/src/*.js
+types/src/*.js.map
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+*.apk
+*.aab
+
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+web/node_modules/
+functions/node_modules/
+types/node_modules/
+
+# ── Test artifacts ───────────────────────────────────────────
+coverage/
+web/coverage/
+functions/coverage/
+web/test-results/
+web/playwright-report/
+web/blob-report/
+android/app/build/reports/
+
+# ── IDE ──────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+.claude/
+
+# ── Gradle ───────────────────────────────────────────────────
+.gradle/
+local.properties
+
+# ── Firebase / emulator ──────────────────────────────────────
+.firebase/
+*-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+firebase-debug.log
+database-debug.log
+storage-debug.log

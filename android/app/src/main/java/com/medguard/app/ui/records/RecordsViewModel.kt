@@ -107,7 +107,7 @@ class RecordsViewModel @Inject constructor(
             if (user == null) return@flatMapLatest flowOf(RecordsUiState.Error("Not authenticated"))
             recordRepository.observeRecords(user.uid)
         }
-        .combine(_searchQuery.debounce(300)) { records, query ->
+        .combine(_searchQuery.debounce(300)) { records: List<RecordWithRelations>, query: String ->
             val filtered = if (query.isBlank()) {
                 records
             } else {

@@ -28,7 +28,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `sessionExpired emits after idle timeout elapses`() = runTest {
+    fun `sessionExpired emits after idle timeout elapses`() = runTest(testDispatcher) {
         val manager = SessionManager()
         manager.sessionExpired.test {
             advanceTimeBy(SessionManager.IDLE_TIMEOUT_MS + 1)
@@ -38,7 +38,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `recordActivity resets the idle timer`() = runTest {
+    fun `recordActivity resets the idle timer`() = runTest(testDispatcher) {
         val manager = SessionManager()
         manager.sessionExpired.test {
             advanceTimeBy(SessionManager.IDLE_TIMEOUT_MS - 1000)
@@ -50,7 +50,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `cancelTimer prevents sessionExpired from emitting`() = runTest {
+    fun `cancelTimer prevents sessionExpired from emitting`() = runTest(testDispatcher) {
         val manager = SessionManager()
         manager.sessionExpired.test {
             manager.cancelTimer()

@@ -99,6 +99,7 @@ dependencies {
 
     testImplementation(libs.bundles.test.unit)
     testImplementation(libs.room.testing)
+    testImplementation(libs.bcprov.jdk18on)
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
@@ -106,6 +107,7 @@ dependencies {
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.ext.junit.ktx)
     androidTestImplementation(libs.espresso.core)
     kspAndroidTest(libs.hilt.compiler)
 }

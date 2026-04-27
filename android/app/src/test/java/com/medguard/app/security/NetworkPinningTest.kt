@@ -30,6 +30,20 @@ import org.junit.jupiter.api.Test
  */
 class NetworkPinningTest {
 
+    // OkHttp 4.x Pin.toString() returns only "sha256/hash", not the hostname pattern.
+    // Reflection is the only public-API-free way to verify which hostnames are pinned.
+    private fun pinnerPatterns(pinner: CertificatePinner): Set<String> {
+        val pinsField = CertificatePinner::class.java.getDeclaredField("pins")
+        pinsField.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val pins = pinsField.get(pinner) as Set<*>
+        return pins.mapNotNullTo(mutableSetOf()) { pin ->
+            val patternField = pin!!.javaClass.getDeclaredField("pattern")
+            patternField.isAccessible = true
+            patternField.get(pin) as? String
+        }
+    }
+
     @Test
     fun `provideOkHttpClient returns a client with a non-default CertificatePinner`() {
         val client = NetworkModule.provideOkHttpClient()
@@ -43,40 +57,36 @@ class NetworkPinningTest {
 
     @Test
     fun `certificate pinner covers firebaseapp dot com`() {
-        val client = NetworkModule.provideOkHttpClient()
-        val pinnerStr = client.certificatePinner.toString()
+        val patterns = pinnerPatterns(NetworkModule.provideOkHttpClient().certificatePinner)
         assertTrue(
-            pinnerStr.contains("firebaseapp.com"),
+            patterns.any { it.contains("firebaseapp.com") },
             "CertificatePinner must include a rule for *.firebaseapp.com"
         )
     }
 
     @Test
     fun `certificate pinner covers googleapis dot com`() {
-        val client = NetworkModule.provideOkHttpClient()
-        val pinnerStr = client.certificatePinner.toString()
+        val patterns = pinnerPatterns(NetworkModule.provideOkHttpClient().certificatePinner)
         assertTrue(
-            pinnerStr.contains("googleapis.com"),
+            patterns.any { it.contains("googleapis.com") },
             "CertificatePinner must include a rule for *.googleapis.com"
         )
     }
 
     @Test
     fun `certificate pinner covers cloudfunctions dot net`() {
-        val client = NetworkModule.provideOkHttpClient()
-        val pinnerStr = client.certificatePinner.toString()
+        val patterns = pinnerPatterns(NetworkModule.provideOkHttpClient().certificatePinner)
         assertTrue(
-            pinnerStr.contains("cloudfunctions.net"),
+            patterns.any { it.contains("cloudfunctions.net") },
             "CertificatePinner must include a rule for *.cloudfunctions.net"
         )
     }
 
     @Test
     fun `certificate pinner covers firebaseio dot com`() {
-        val client = NetworkModule.provideOkHttpClient()
-        val pinnerStr = client.certificatePinner.toString()
+        val patterns = pinnerPatterns(NetworkModule.provideOkHttpClient().certificatePinner)
         assertTrue(
-            pinnerStr.contains("firebaseio.com"),
+            patterns.any { it.contains("firebaseio.com") },
             "CertificatePinner must include a rule for *.firebaseio.com"
         )
     }

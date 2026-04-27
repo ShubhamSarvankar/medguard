@@ -1,11 +1,23 @@
 package com.medguard.app.data.p2p
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import java.security.Security
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class EcdhKeyExchangeTest {
+
+    @BeforeAll
+    fun registerBouncyCastle() {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(BouncyCastleProvider())
+        }
+    }
 
     private val exchange = EcdhKeyExchange()
 

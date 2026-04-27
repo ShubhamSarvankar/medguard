@@ -22,7 +22,7 @@ class SessionManager @Inject constructor() : DefaultLifecycleObserver {
         const val IDLE_TIMEOUT_MS = 15 * 60 * 1000L // FR-AUTH-04: 15-minute idle timeout
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _sessionExpired = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val sessionExpired: SharedFlow<Unit> = _sessionExpired.asSharedFlow()
@@ -31,7 +31,14 @@ class SessionManager @Inject constructor() : DefaultLifecycleObserver {
     private var isForegrounded = false
 
     init {
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        try {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        } catch (_: Exception) {
+            // Not running in an Android process (e.g. JVM unit tests).
+            // Treat as always-foregrounded and start the timer directly.
+            isForegrounded = true
+            restartIdleTimer()
+        }
     }
 
     override fun onStart(owner: LifecycleOwner) {

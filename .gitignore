@@ -55,6 +55,7 @@ functions/coverage/
 web/test-results/
 web/playwright-report/
 web/blob-report/
+web/e2e/downloads/
 android/app/build/reports/
 
 # ── IDE ──────────────────────────────────────────────────────

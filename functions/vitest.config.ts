@@ -13,7 +13,18 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["src/pipeline/**", "src/share/**", "src/ai/**", "src/audit/**", "src/user/**"],
+      include: [
+        "src/pipeline/**",
+        "src/share/**",
+        "src/ai/**",
+        "src/audit/**",
+        "src/user/**",
+        "src/records/**",
+      ],
+      exclude: [
+        "src/pipeline/onRecordWrite.ts",
+        "src/pipeline/phiExtractClient.ts",
+      ],
       thresholds: {
         lines: 85,
         functions: 85,

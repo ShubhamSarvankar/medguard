@@ -14,9 +14,11 @@ class EcdhKeyExchangeTest {
 
     @BeforeAll
     fun registerBouncyCastle() {
-        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-            Security.addProvider(BouncyCastleProvider())
-        }
+        // Insert BC at position 1 (highest priority) so it wins over SunEC for P-256.
+        // SunEC is present in the JVM but throws InvalidAlgorithmParameterException for
+        // named curves; it does NOT fall through to the next provider on that exception.
+        Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
+        Security.insertProviderAt(BouncyCastleProvider(), 1)
     }
 
     private val exchange = EcdhKeyExchange()

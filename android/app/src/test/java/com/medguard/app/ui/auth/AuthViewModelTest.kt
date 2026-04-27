@@ -12,7 +12,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
     private val userFlow = MutableStateFlow<User?>(null)
     private val repository = mockk<AuthRepository>()
 
@@ -69,11 +69,13 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `state returns to Idle when authenticated user signs out`() = runTest {
+    fun `state returns to Idle when authenticated user signs out`() = runTest(testDispatcher) {
         userFlow.value = fakeUser
+        testDispatcher.scheduler.advanceUntilIdle()
         viewModel.uiState.test {
             assertEquals(AuthUiState.Authenticated(fakeUser), awaitItem())
             userFlow.value = null
+            testDispatcher.scheduler.advanceUntilIdle()
             assertEquals(AuthUiState.Idle, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }

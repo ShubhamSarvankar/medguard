@@ -107,7 +107,7 @@ dependencies {
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.ext.junit.ktx)
+    androidTestImplementation(libs.androidx.test.ext.junitktx)
     androidTestImplementation(libs.espresso.core)
     kspAndroidTest(libs.hilt.compiler)
 }

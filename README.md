@@ -1,5 +1,7 @@
 # MedGuard
 
+[![CI](https://github.com/ShubhamSarvankar/medguard/actions/workflows/ci.yml/badge.svg)](https://github.com/ShubhamSarvankar/medguard/actions/workflows/ci.yml)
+
 A cross-platform medical records system with end-to-end encryption, mandatory PHI de-identification, and HIPAA-aware audit logging. Two clients (Android + React web), Firebase backend, 19 Cloud Functions, and an AI pipeline that strips protected health information before any record reaches the database.
 
 Built as an extension of a project done for INFSCI 2150 - Information Security and Privacy.

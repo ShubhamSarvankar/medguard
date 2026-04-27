@@ -93,6 +93,8 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.7"
       - name: Create dummy google-services.json for CI
         run: |
           cat > app/google-services.json << 'EOF'
@@ -167,6 +169,8 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.7"
       - name: Create dummy google-services.json for CI
         run: |
           cat > app/google-services.json << 'EOF'
@@ -279,6 +283,8 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
       - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.7"
       - name: Create dummy google-services.json for CI
         run: |
           cat > android/app/google-services.json << 'EOF'

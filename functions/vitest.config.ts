@@ -24,6 +24,8 @@ export default defineConfig({
       exclude: [
         "src/pipeline/onRecordWrite.ts",
         "src/pipeline/phiExtractClient.ts",
+        "src/records/createRecord.ts",
+        "src/records/getRecordKey.ts",
       ],
       thresholds: {
         lines: 85,

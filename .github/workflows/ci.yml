@@ -93,6 +93,16 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/setup-gradle@v3
+      - name: Create dummy google-services.json for CI
+        run: |
+          cat > app/google-services.json << 'EOF'
+          {
+            "project_info": { "project_number": "000000000000", "project_id": "medguard-dev", "storage_bucket": "medguard-dev.appspot.com" },
+            "client": [{ "client_info": { "mobilesdk_app_id": "1:000000000000:android:0000000000000000", "android_client_info": { "package_name": "com.medguard.app" } }, "api_key": [{ "current_key": "fake-ci-key" }] }],
+            "configuration_version": "1"
+          }
+          EOF
+        working-directory: android
       - name: Run unit tests
         run: gradle test
         working-directory: android
@@ -157,6 +167,16 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/setup-gradle@v3
+      - name: Create dummy google-services.json for CI
+        run: |
+          cat > app/google-services.json << 'EOF'
+          {
+            "project_info": { "project_number": "000000000000", "project_id": "medguard-dev", "storage_bucket": "medguard-dev.appspot.com" },
+            "client": [{ "client_info": { "mobilesdk_app_id": "1:000000000000:android:0000000000000000", "android_client_info": { "package_name": "com.medguard.app" } }, "api_key": [{ "current_key": "fake-ci-key" }] }],
+            "configuration_version": "1"
+          }
+          EOF
+        working-directory: android
       - run: gradle lint
         working-directory: android
 
@@ -259,6 +279,15 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
       - uses: gradle/actions/setup-gradle@v3
+      - name: Create dummy google-services.json for CI
+        run: |
+          cat > android/app/google-services.json << 'EOF'
+          {
+            "project_info": { "project_number": "000000000000", "project_id": "medguard-dev", "storage_bucket": "medguard-dev.appspot.com" },
+            "client": [{ "client_info": { "mobilesdk_app_id": "1:000000000000:android:0000000000000000", "android_client_info": { "package_name": "com.medguard.app" } }, "api_key": [{ "current_key": "fake-ci-key" }] }],
+            "configuration_version": "1"
+          }
+          EOF
       - name: Enable KVM (hardware acceleration for Android emulator)
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | \

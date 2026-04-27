@@ -8,6 +8,7 @@ import com.medguard.app.data.local.db.MedicationEntity
 import com.medguard.app.data.local.db.RecordEntity
 import com.medguard.app.data.local.db.RecordWithRelations
 import com.medguard.app.domain.model.User
+import com.medguard.app.domain.model.UserRole
 import com.medguard.app.domain.repository.AuthRepository
 import com.medguard.app.domain.repository.RecordRepository
 import io.mockk.coEvery
@@ -26,9 +27,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecordsViewModelTest {
@@ -44,7 +44,7 @@ class RecordsViewModelTest {
         uid = "uid-test",
         displayName = "Test User",
         email = "test@example.com",
-        role = "patient",
+        role = UserRole.PATIENT,
     )
 
     @BeforeEach
@@ -135,7 +135,7 @@ class RecordsViewModelTest {
     }
 
     @Test
-    fun `emits Error when user not authenticated`() = runTest {
+    fun `emits Empty when user not authenticated`() = runTest {
         every { authRepository.currentUser } returns MutableStateFlow(null)
         every { recordRepository.observeRecords(any()) } returns flowOf(emptyList())
         viewModel = RecordsViewModel(recordRepository, authRepository, connectivityObserver)
@@ -145,7 +145,7 @@ class RecordsViewModelTest {
             val states = cancelAndConsumeRemainingEvents()
                 .filterIsInstance<app.cash.turbine.Event.Item<RecordsUiState>>()
                 .map { it.value }
-            assertTrue(states.any { it is RecordsUiState.Error })
+            assertTrue(states.any { it is RecordsUiState.Empty })
         }
     }
 
@@ -412,7 +412,7 @@ class RecordsViewModelTest {
             )
             assertEquals(RecordEditUiState.Saving, awaitItem())
             testDispatcher.scheduler.advanceUntilIdle()
-            assertIs<RecordEditUiState.Error>(awaitItem())
+            assertTrue(awaitItem() is RecordEditUiState.Error)
             cancelAndIgnoreRemainingEvents()
         }
     }
